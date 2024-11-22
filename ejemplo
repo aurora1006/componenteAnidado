@@ -1,0 +1,83 @@
+--- Servicio ---
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AreaService {
+  private selectedArea = new BehaviorSubject<string | null>(null);
+  selectedArea$ = this.selectedArea.asObservable();
+
+  setSelectedArea(areaId: string) {
+    this.selectedArea.next(areaId);
+  }
+}
+
+--- Componente A -----
+
+@Component({
+  selector: 'app-componente-a',
+  template: `
+    <select (change)="onAreaChange($event)">
+      <option *ngFor="let area of areas" [value]="area.id">{{ area.name }}</option>
+    </select>
+
+    <!-- Carga el componente C directamente -->
+    <app-componente-c></app-componente-c>
+  `,
+})
+export class ComponenteAComponent {
+  constructor(private areaService: AreaService) {}
+
+  onAreaChange(event: Event) {
+    const areaId = (event.target as HTMLSelectElement).value;
+    this.areaService.setSelectedArea(areaId);
+  }
+}
+
+--- Componente C ----
+
+@Component({
+  selector: 'app-componente-c',
+  template: `
+    <ng-container *ngIf="forms">
+      <app-componente-d [items]="forms"></app-componente-d>
+    </ng-container>
+  `,
+})
+export class ComponenteCComponent implements OnInit, OnDestroy {
+  forms: any[] | null = null;
+  private subscription: Subscription;
+
+  constructor(private areaService: AreaService) {}
+
+  ngOnInit() {
+    this.subscription = this.areaService.selectedArea$
+      .pipe(
+        filter((areaId) => !!areaId), // Solo pasa valores no nulos
+        distinctUntilChanged() // Evita notificaciones redundantes
+      )
+      .subscribe((areaId) => {
+        this.updateForms(areaId as string);
+      });
+  }
+
+  updateForms(areaId: string) {
+    // Construye el objeto `forms` dinámicamente
+    this.forms = [
+      {
+        tipoPregunta: 'List',
+        source: {
+          url: `secciones/areas/${areaId}`, // URL dinámica basada en el área seleccionada
+        },
+      },
+    ];
+  }
+
+  ngOnDestroy() {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+  }
+}
+
+
