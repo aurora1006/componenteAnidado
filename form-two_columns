@@ -221,7 +221,13 @@ export class DynamicCodeComponent implements OnInit {
     readonly
   />
 </form>
-
-
-
 <!-------
+
+Retornar el arreglo original
+
+this.questions = this.questionRows.flat();
+
+this.questions = this.questionRows.reduce((acc, curr) => acc.concat(curr), []);
+
+
+
