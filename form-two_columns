@@ -1,0 +1,227 @@
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, FormArray } from '@angular/forms';
+
+@Component({
+  selector: 'app-dynamic-form',
+  templateUrl: './dynamic-form.component.html',
+  styleUrls: ['./dynamic-form.component.css']
+})
+export class DynamicFormComponent implements OnInit {
+  form: FormGroup;
+  questions = [
+    { id: 1, label: 'Nombre', type: 'text' },
+    { id: 2, label: 'Edad', type: 'number' },
+    { id: 3, label: 'País', type: 'combo', options: ['México', 'España', 'Argentina'] },
+    { id: 4, label: 'Correo', type: 'text' },
+    { id: 5, label: 'Teléfono', type: 'number' }
+  ];
+  questionRows: any[] = [];
+
+  constructor(private fb: FormBuilder) {
+    this.form = this.fb.group({
+      questions: this.fb.array([]) // FormArray para los controles dinámicos
+    });
+  }
+
+  ngOnInit(): void {
+    this.organizeQuestions();
+    this.initializeFormControls();
+  }
+
+  // Divide las preguntas en filas de dos
+  organizeQuestions() {
+    this.questionRows = [];
+    for (let i = 0; i < this.questions.length; i += 2) {
+      this.questionRows.push(this.questions.slice(i, i + 2));
+    }
+  }
+
+  // Inicializa los controles del formulario según las preguntas
+  initializeFormControls() {
+    const questionArray = this.form.get('questions') as FormArray;
+    this.questions.forEach(question => {
+      questionArray.push(this.fb.control('')); // Inicializa un control vacío para cada pregunta
+    });
+  }
+
+  // Obtiene los controles del FormArray
+  get questionControls() {
+    return (this.form.get('questions') as FormArray).controls;
+  }
+}
+
+
+
+
+
+
+<!-------------------->
+
+<form [formGroup]="form">
+  <div class="row" *ngFor="let row of questionRows; let rowIndex = index">
+    <div class="col" *ngFor="let question of row; let colIndex = index">
+      <label [for]="'question-' + question.id">{{ question.label }}</label>
+
+      <!-- Usa ngSwitch para manejar los tipos de preguntas -->
+      <ng-container [formControlName]="rowIndex * 2 + colIndex" [ngSwitch]="question.type">
+        <!-- Campo de texto -->
+        <input *ngSwitchCase="'text'" type="text" [id]="'question-' + question.id" />
+        
+        <!-- Campo numérico -->
+        <input *ngSwitchCase="'number'" type="number" [id]="'question-' + question.id" />
+        
+        <!-- Campo combo (select) -->
+        <select *ngSwitchCase="'combo'" [id]="'question-' + question.id">
+          <option *ngFor="let option of question.options" [value]="option">{{ option }}</option>
+        </select>
+        
+        <!-- Por defecto -->
+        <span *ngSwitchDefault>No soportado</span>
+      </ng-container>
+    </div>
+  </div>
+</form>
+
+
+<!-------CSS------->
+
+.row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+
+---------------
+$row-gap: 20px; // Variable para el espacio entre filas y columnas
+
+.row {
+  display: flex;
+  gap: $row-gap;
+  margin-bottom: $row-gap;
+
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+
+Uso de Variables ($row-gap):
+
+Se define una variable $row-gap para el valor de gap y margin-bottom, lo que facilita el mantenimiento del código si necesitas cambiar el espaciado.
+Anidación:
+
+Se anidan los estilos de .col dentro de .row para reflejar la relación jerárquica de los elementos en el DOM y hacer que el código sea más legible.
+----------------
+
+@mixin flex-column($gap) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+}
+
+.row {
+  @include flex-column($row-gap);
+  margin-bottom: $row-gap;
+
+  .col {
+    flex: 1;
+    @include flex-column(0);
+  }
+}
+
+Con este enfoque, puedes centralizar estilos reutilizables y hacer tu SCSS más eficiente.
+
+<!---------------------------->
+
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+
+@Component({
+  selector: 'app-dynamic-code',
+  templateUrl: './dynamic-code.component.html',
+  styleUrls: ['./dynamic-code.component.css']
+})
+export class DynamicCodeComponent implements OnInit {
+  form: FormGroup;
+
+  constructor(private fb: FormBuilder) {
+    this.form = this.fb.group({
+      combo1: [''], // Control para el primer combo
+      combo2: [''], // Control para el segundo combo
+      textInput: [''], // Control para el campo de texto
+      generatedCode: [{ value: '', disabled: true }] // Control para el código (solo lectura)
+    });
+  }
+
+  ngOnInit(): void {
+    this.setupCodeGeneration();
+  }
+
+  // Escucha los cambios en los controles y construye el código
+  setupCodeGeneration() {
+    this.form.valueChanges.subscribe(values => {
+      const pos01 = values.combo1 || '';
+      const pos02 = values.combo2 || '';
+      const pos03 = values.textInput || '';
+      const generatedCode = `${pos01}${pos02}${pos03}`;
+
+      // Actualiza el campo generado dinámicamente
+      this.form.get('generatedCode')?.setValue(generatedCode, { emitEvent: false });
+    });
+  }
+}
+
+
+<!--------->
+
+<form [formGroup]="form">
+  <!-- Combo 1 -->
+  <label for="combo1">Combo 1</label>
+  <select id="combo1" formControlName="combo1">
+    <option value="">Selecciona una opción</option>
+    <option value="A1">A1</option>
+    <option value="B2">B2</option>
+    <option value="C3">C3</option>
+  </select>
+
+  <!-- Combo 2 -->
+  <label for="combo2">Combo 2</label>
+  <select id="combo2" formControlName="combo2">
+    <option value="">Selecciona una opción</option>
+    <option value="X1">X1</option>
+    <option value="Y2">Y2</option>
+    <option value="Z3">Z3</option>
+  </select>
+
+  <!-- Input de Texto -->
+  <label for="textInput">Texto</label>
+  <input
+    id="textInput"
+    type="text"
+    formControlName="textInput"
+    (keyup)=""
+    placeholder="Escribe algo"
+  />
+
+  <!-- Input de Código Generado -->
+  <label for="generatedCode">Código Generado</label>
+  <input
+    id="generatedCode"
+    type="text"
+    formControlName="generatedCode"
+    readonly
+  />
+</form>
+
+
+
+<!-------
